@@ -32,7 +32,6 @@ The following **additional** features are implemented:
 
 ## Video Walkthrough
 
-Here's a walkthrough of implemented user stories:
 <img src='https://github.com/sada9/Flicks/raw/master/flicks.gif' title='img' width='200' alt='img' />
 
 GIF created with [LiceCap](http://www.cockos.com/licecap/).
