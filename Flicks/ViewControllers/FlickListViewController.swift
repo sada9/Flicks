@@ -15,6 +15,7 @@ class FlickListViewController: UIViewController {
     @IBOutlet weak var flicksTableView: UITableView!
     @IBOutlet weak var bannerView: UIView!
     @IBOutlet weak var bannerLabel: UILabel!
+    @IBOutlet weak var flicksCollectionView: UICollectionView!
 
     var viewModel: FlickListViewModel!
     let refreshCtrl = UIRefreshControl()
@@ -89,6 +90,7 @@ extension FlickListViewController : DataManagerListener {
         case .Success(let movies):
             self.viewModel = FlickListViewModel(movies: movies)
             flicksTableView.reloadData()
+            flicksCollectionView.reloadData()
             self.bannerView.isHidden = true
             
         case .Failure(let errorStr):
@@ -102,6 +104,32 @@ extension FlickListViewController : DataManagerListener {
         self.scrollerFlag = false
     }
 }
+
+extension FlickListViewController :  UICollectionViewDataSource, UICollectionViewDelegate {
+
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MovieCollectionCell", for: indexPath) as! MovieCollectionCell
+
+        if let movie = viewModel.movieForIndexPath(index: indexPath) {
+            if let posterUrl = movie.poster_path {
+                let baseUrl = "http://image.tmdb.org/t/p/w342"
+                cell.loadImage(imageUrl: baseUrl + (posterUrl as String))
+            }
+        }
+        return cell
+
+
+    }
+
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        if self.viewModel.isDataAvailable() {
+            return viewModel.moviesCount()
+        }
+        return 0
+    }
+    
+}
+
 
 extension FlickListViewController : UITableViewDataSource, UITableViewDelegate {
 
@@ -156,6 +184,33 @@ extension FlickListViewController : UIScrollViewDelegate {
         }
     }
 }
+
+class MovieCollectionCell : UICollectionViewCell {
+
+    @IBOutlet weak var flickPoster: UIImageView!
+
+    func loadImage(imageUrl : String) {
+
+        let imageRequest = URLRequest(url: URL(string: imageUrl)! )
+        self.flickPoster.setImageWith(
+            imageRequest,
+            placeholderImage: nil,
+            success: { (imageRequest, imageResponse, image) -> Void in
+                if imageResponse != nil {
+                    self.flickPoster.alpha = 0.0
+                    self.flickPoster.image = image
+                    UIView.animate(withDuration: 0.3, animations: { () -> Void in
+                        self.flickPoster.alpha = 1.0
+                    })
+                } else {
+                    self.flickPoster.image = image
+                }
+        },
+            failure: { (imageRequest, imageResponse, error) -> Void in
+        })
+    }
+}
+
 
 class MovieCell : UITableViewCell {
 
