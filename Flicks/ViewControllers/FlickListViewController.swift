@@ -202,6 +202,11 @@ extension FlickListViewController : UITableViewDataSource, UITableViewDelegate {
                 let baseUrl = "http://image.tmdb.org/t/p/w342"
                 cell.loadImage(imageUrl: baseUrl + (posterUrl as String))
             }
+
+            let backgroundView = UIView()
+            backgroundView.backgroundColor = UIColor(red: (201/255.0), green: (239/255.0), blue: (247/255.0), alpha: 0.5)
+
+            cell.selectedBackgroundView = backgroundView
         }
         return cell
     }
@@ -212,6 +217,7 @@ extension FlickListViewController : UITableViewDataSource, UITableViewDelegate {
         }
         return 0
     }
+
 
     /*
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -224,7 +230,7 @@ extension FlickListViewController : UITableViewDataSource, UITableViewDelegate {
 
 }
 
-extension FlickListViewController : UIScrollViewDelegate{
+extension FlickListViewController : UIScrollViewDelegate {
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
 
@@ -306,6 +312,7 @@ class MovieCell : UITableViewCell {
             failure: { (imageRequest, imageResponse, error) -> Void in
         })
     }
+
 }
 
 
