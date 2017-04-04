@@ -16,20 +16,27 @@ class FlickListViewController: UIViewController {
     @IBOutlet weak var bannerView: UIView!
     @IBOutlet weak var bannerLabel: UILabel!
     @IBOutlet weak var flicksCollectionView: UICollectionView!
+    @IBOutlet weak var segmentView: UISegmentedControl!
+    @IBOutlet weak var searchBar: UISearchBar!
 
     var viewModel: FlickListViewModel!
     let refreshCtrl = UIRefreshControl()
     var scrollerFlag = false
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
         self.banner(show: false)
 
         self.viewModel = FlickListViewModel()
+        self.edgesForExtendedLayout = []
 
         initDataManager()
         refreshCtrl.addTarget(self, action: #selector(refreshTable(_:)), for: UIControlEvents.valueChanged)
         flicksTableView.insertSubview(refreshCtrl, at: 0)
+        searchBar.delegate = self
+
+        definesPresentationContext = true
     }
 
     func initDataManager() {
@@ -40,8 +47,9 @@ class FlickListViewController: UIViewController {
     }
 
     func refreshTable(_ sender: UIRefreshControl? = nil) {
+
         addTableFooter()
-        viewModel.fetchData()
+        viewModel.fetchData(freshLoad: true)
     }
 
     func banner(show: Bool, message: String = "") {
@@ -49,25 +57,47 @@ class FlickListViewController: UIViewController {
         self.bannerView.isHidden = !show
         self.bannerLabel.text = message
 
-        if show {
-            let maxy = self.bannerView.frame.maxY
-            let miny = self.bannerView.frame.minY
-            let y = self.bannerView.frame.origin.y
 
-            self.bannerView.frame.origin.y = y - (maxy-miny)
+        if show {
+            let maxy = 91.0 //self.bannerView.frame.maxY //91
+            let miny = 63.0 // self.bannerView.frame.minY //63
+            let y = 63.0 //self.bannerView.frame.origin.y //63
+
+            self.bannerView.frame.origin.y = CGFloat(y - (maxy-miny) - 25)
             self.bannerView.alpha = 1.0
 
             UIView.animate(withDuration: 0.5, animations: { () -> Void in
-                self.bannerView.frame.origin.y = y
+                self.bannerView.frame.origin.y = CGFloat(y - 25)
             })
 
         }
     }
 
+    @IBAction func segmentIndexChanged(_ sender: UISegmentedControl) {
+        if(sender.selectedSegmentIndex == 0){
+            flicksTableView.isHidden = false
+            flicksCollectionView.isHidden = true
+        }
+        else{
+            flicksTableView.isHidden = true
+            flicksCollectionView.isHidden = false
+            flicksCollectionView.reloadData()
+        }
+    }
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        let selectedRow = self.flicksTableView.indexPathForSelectedRow
+
+        var indexPath: IndexPath!
+
+        if(self.segmentView.selectedSegmentIndex == 0){
+            indexPath = self.flicksTableView.indexPathForSelectedRow
+        }
+        else {
+            indexPath = self.flicksCollectionView.indexPathsForSelectedItems?[0]
+        }
+
         let detailsViewController = segue.destination as! FlickDetailsViewController
-        detailsViewController.viewModel = FlickDetailsViewModel(movie: self.viewModel.movieForIndexPath(index: selectedRow!)!)
+        detailsViewController.viewModel = FlickDetailsViewModel(movie: self.viewModel.movieForIndexPath(index: indexPath!)!)
+
     }
 
     func addTableFooter() {
@@ -80,6 +110,32 @@ class FlickListViewController: UIViewController {
     }
 
 }
+
+extension FlickListViewController: UISearchBarDelegate {
+
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        //filterContentForSearchText(searchController.searchBar.text!)
+        let movies = viewModel.filterFlicks(key: searchText)
+        if movies.count > 0 {
+            self.finishedFetchingData(result: .Success(movies))
+        }
+    }
+
+    func searchBarTextDidBeginEditing(_ search: UISearchBar) {
+        self.searchBar.showsCancelButton = true
+    }
+
+    func searchBarCancelButtonClicked(_ search: UISearchBar) {
+        search.showsCancelButton = false
+        search.text = ""
+        search.resignFirstResponder()
+
+        viewModel.fetchData(freshLoad: true)
+    }
+
+}
+
+
 
 extension FlickListViewController : DataManagerListener {
 
@@ -168,18 +224,29 @@ extension FlickListViewController : UITableViewDataSource, UITableViewDelegate {
 
 }
 
-extension FlickListViewController : UIScrollViewDelegate {
+extension FlickListViewController : UIScrollViewDelegate{
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
 
         if !self.scrollerFlag {
-            let scrollViewContentHeight = flicksTableView.contentSize.height
-            let scrollOffsetThreshold = scrollViewContentHeight - flicksTableView.bounds.size.height
+            if self.segmentView.selectedSegmentIndex == 0 {
+                let scrollViewContentHeight = flicksTableView.contentSize.height
+                let scrollOffsetThreshold = scrollViewContentHeight - flicksTableView.bounds.size.height
 
-            // When the user has scrolled past the threshold, start requesting
-            if(scrollView.contentOffset.y > scrollOffsetThreshold && flicksTableView.isDragging) {
-                DataManager.sharedInstance.fetchMoviesData()
-                self.scrollerFlag = true
+                if(scrollView.contentOffset.y > scrollOffsetThreshold && flicksTableView.isDragging) {
+                    DataManager.sharedInstance.fetchMoviesData()
+                    self.scrollerFlag = true
+                }
+            }
+            else {
+                let scrollViewContentHeight = flicksCollectionView.contentSize.height
+                let scrollOffsetThreshold = scrollViewContentHeight - flicksCollectionView.bounds.size.height
+
+                // When the user has scrolled past the threshold, start requesting
+                if(scrollView.contentOffset.y > scrollOffsetThreshold && flicksCollectionView.isDragging) {
+                    DataManager.sharedInstance.fetchMoviesData()
+                    self.scrollerFlag = true
+                }
             }
         }
     }

@@ -47,5 +47,13 @@ class FlickListViewModel {
 
         DataManager.sharedInstance.fetchMoviesData()
     }
+
+    func filterFlicks(key : String) -> [Movie] {
+        let movies = self.movies
+
+        return (movies?.filter { movie in
+            (movie.title?.lowercased().contains(key.lowercased()))!
+            })!
+    }
 }
 
